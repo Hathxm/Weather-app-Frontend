@@ -1,0 +1,115 @@
+import React, { useEffect, useState } from 'react';
+import axios from '../../../axiosinstance/axiosinstance';
+
+const UserManagement = () => {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await axios.get('/superadmin/user-management');
+        const data = response.data; // Ensure this is an array of user objects
+        setUsers(data);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const toggleUserStatus = async (userId) => {
+    try {
+      // Send PATCH request with the userId in the request body
+      const response = await axios.patch(`/superadmin/user-management`, {
+        userId: userId,
+      });
+      
+      if (response.status === 200) {
+        // Update the user status in the frontend based on the response
+        const updatedUsers = users.map(user =>
+          user.id === userId ? { ...user, isBlocked: !user.isBlocked } : user
+        );
+        setUsers(updatedUsers);
+      } else {
+        console.error("Failed to update user status.");
+      }
+    } catch (error) {
+      console.error("Error updating user status:", error);
+    }
+  };
+
+  return (
+    <div className="w-full overflow-auto">
+      <table className="min-w-full bg-white">
+        <thead>
+          <tr>
+            <th className="py-2 px-4 bg-gray-800 text-white text-center">Name</th>
+            <th className="py-2 px-4 bg-gray-800 text-white text-center">Email</th>
+            <th className="py-2 px-4 bg-gray-800 text-white text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id} className="border-b">
+              <td className="py-2 px-4 text-center align-middle">{user.username}</td>
+              <td className="py-2 px-4 text-center align-middle">{user.email}</td>
+              <td className="py-2 px-4 text-center align-middle">
+                <button
+                  onClick={() => toggleUserStatus(user.id, user.isBlocked)}
+                  className={`p-2 rounded ${
+                    user.isBlocked ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                  }`}
+                >
+                  {user.isBlocked ? (
+                    <LockIcon className="h-5 w-5 inline" />
+                  ) : (
+                    <LockOpenIcon className="h-5 w-5 inline" />
+                  )}
+                  {user.isBlocked ? ' Blocked' : ' Active'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const LockIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+const LockOpenIcon = (props) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+export default UserManagement;
