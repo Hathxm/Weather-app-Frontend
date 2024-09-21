@@ -8,8 +8,9 @@ const UserPrivateRoute = ({ children }) => {
     
     // If the user is not authenticated or their is_active field is false, redirect to login
     
-        if (!user_basic_details?.is_authenticated) {
-            return <Navigate to="/login" replace />;
+        if (!user_basic_details.is_authenticated) {
+            console.log("not authenticated")
+            return <Navigate to="/" replace />;
         }
 
     

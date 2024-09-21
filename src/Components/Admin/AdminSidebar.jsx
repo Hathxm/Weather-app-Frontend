@@ -21,7 +21,7 @@ const Sidebar = ({ children }) => {
             is_authenticated:false,
         })
     ) // Clear the local storage (logout)
-    navigate("/login");    // Redirect to the login page
+    navigate("/");    // Redirect to the login page
   };
 
   const toggleSidebar = () => {
@@ -75,12 +75,12 @@ const Sidebar = ({ children }) => {
       </aside>
 
       {/* Main content */}
-      <main className={`flex-grow ml-${isSidebarOpen ? '64' : ''} transition-all duration-300`}>
+      <main className={`flex-grow bg-white shadow-lg rounded-lg  lg:w-3/4 ${isSidebarOpen ? 'ml-64' : ''}`}>
         {/* Toggle button when sidebar is closed */}
         {!isSidebarOpen && (
           <button
             onClick={toggleSidebar}
-            className="fixed top-0 left-4 text-white p-2 rounded-full shadow-lg"
+            className="fixed top-0 left-4 text-white p-4 rounded-full shadow-lg mt-2"
           >
             <FontAwesomeIcon icon={faBars} />
           </button>

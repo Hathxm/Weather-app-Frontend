@@ -45,6 +45,7 @@ const UserWrapper = () => {
   };
 
   useEffect(() => {
+    // localStorage.clear()
     if (token) {
       fetchUserData();  // Fetch user data if token exists
     } else {
@@ -59,7 +60,7 @@ const UserWrapper = () => {
 
   return (
     <Routes>
-      <Route path="login" element={<Login />} />
+      <Route path="" element={<Login />} />
       <Route path="signup" element={<SignupComponent />} />
       {/* Only show Dashboard if user is authenticated */}
       <Route path="user-dashboard" element={<UserPrivateRoute><Dashboard /></UserPrivateRoute>} />

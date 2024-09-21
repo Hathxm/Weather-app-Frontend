@@ -4,6 +4,8 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import axios from '../../../axiosinstance/axiosinstance';
 import { ToastContainer, toast } from 'react-toastify';  // Import toast components
 import 'react-toastify/dist/ReactToastify.css';           // Import toast CSS
+import { set_user_basic_details } from '../../../Redux/UserDetails/UserDetailsSlice';
+import { useDispatch } from 'react-redux';
 
 const FormComponentRight = () => {
   const [username, setUsername] = useState('');
@@ -11,6 +13,7 @@ const FormComponentRight = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ username: '', email: '', password: '' });
   const navigate = useNavigate();
+  const dispatch = useDispatch()
 
   // Handle input changes and validation
   const handleInputChange = (e) => {
@@ -66,38 +69,57 @@ const FormComponentRight = () => {
   };
 
 
+ 
   const handleGoogleSuccess = async (credentialResponse) => {
     const token = credentialResponse.credential;
-    console.log(token)
     try {
       const response = await axios.post("google-login", { token });
-      console.log("Received response:", response);
-
-      // If user exists, log them in and navigate to the homepage
+  
       if (response.status === 200) {
-        const { email, username, access, refresh } = response.data;
-        // localStorage.setItem('email', email);
-        // localStorage.setItem('username', username);
-        localStorage.setItem('access', access);
-        localStorage.setItem('refresh', refresh);
-
-        // dispatch(set_Authentication({
-        //   name: username,
-        //   isAuthenticated: true,
-        //   isAdmin: false,  // Adjust based on your user model
-        //   isSuperAdmin: false,  // Adjust based on your user model
-        //   isVendor: isVendor,
-        // }));
-
-        navigate('home');
+        const { access, refresh, is_superuser, id, username, email, is_authenticated } = response.data;
+        
+        // Store tokens and user details
+        localStorage.setItem("access_token", access);
+        localStorage.setItem("refresh_token", refresh);
+  
+        const userData = {
+          id: id,
+          name: username,
+          is_superuser: is_superuser,
+          email: email,
+          is_authenticated: is_authenticated,
+        };
+  
+        // Dispatch user details to the store
+        dispatch(set_user_basic_details(userData));
+  
+        // Show success toast
+        toast.success("User has successfully logged in");
+  
+        // Navigate based on user role
+        if (is_superuser) {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/user-dashboard");
+        }
       } else {
-        // If user is new, proceed with OTP verification
+        // If status is not 200, show error toast (fallback case)
+        toast.error("An unexpected error occurred during login.");
       }
     } catch (error) {
-      console.error('Error during Google signup:', error.response || error.message);
+      // Log error details for debugging
+      console.error("Error during Google login:", error);
+  
+      // Check if the error is a 400 response (e.g., email already in use or other issues)
+      if (error.response && error.response.status === 400) {
+        const errorMessage = error.response.data?.error || "Invalid login attempt.";
+        toast.error(errorMessage);
+      } else {
+        // Handle other errors (500 or network-related errors)
+        toast.error("An error occurred while logging in. Please try again.");
+      }
     }
   };
-
   return (
     <section className="h-screen flex items-stretch text-white overflow-hidden bg-gray-500">
       <ToastContainer />  {/* Add ToastContainer to display toasts */}
@@ -154,19 +176,20 @@ const FormComponentRight = () => {
               >
                 Sign Up
               </button>
-              <div className='mt-2'>
-                <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => console.log('Google login failed')}
-                  />
-                </GoogleOAuthProvider>
-              </div>
+              <div className="mt-4 flex justify-center">
+        <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => console.log('Google login failed')}
+              className="w-full"
+            />
+          </GoogleOAuthProvider>
+        </div>
             </div>
           </form>
           <div className="text-center sm:w-2/3 w-full px-8 lg:px-10 mx-auto">
             <p className="mt-4 text-lg text-white">
-              Already have an account? <Link to="/login" className="underline">Login</Link>
+              Already have an account? <Link to="/" className="underline">Login</Link>
             </p>
           </div>
         </div>

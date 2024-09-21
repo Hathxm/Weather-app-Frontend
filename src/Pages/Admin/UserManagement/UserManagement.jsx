@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../../../axiosinstance/axiosinstance';
+import { toast } from 'react-toastify';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -17,24 +18,35 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
+
   const toggleUserStatus = async (userId) => {
     try {
       // Send PATCH request with the userId in the request body
       const response = await axios.patch(`/superadmin/user-management`, {
         userId: userId,
       });
-      
+  
       if (response.status === 200) {
         // Update the user status in the frontend based on the response
         const updatedUsers = users.map(user =>
           user.id === userId ? { ...user, isBlocked: !user.isBlocked } : user
         );
         setUsers(updatedUsers);
+  
+        // Show appropriate toast notification based on the new user status
+        const updatedUser = updatedUsers.find(user => user.id === userId);
+        if (updatedUser.isBlocked) {
+          toast.error("User has been blocked successfully");
+        } else {
+          toast.success("User has been unblocked successfully");
+        }
       } else {
         console.error("Failed to update user status.");
+        toast.error("Failed to update user status. Please try again.");
       }
     } catch (error) {
       console.error("Error updating user status:", error);
+      toast.error("An error occurred while updating the user status.");
     }
   };
 

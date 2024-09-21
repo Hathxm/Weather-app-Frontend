@@ -1,7 +1,8 @@
 // src/components/AdminWrapper.jsx
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
-import Dashboard from '../Pages/Admin/AdminDashboard.jsx/AdminDashboard';
+// import Dashboard from '../Pages/Admin/AdminDashboard.jsx/AdminDashboard';
+import Dashboard from '../Pages/User/Home/UserDashboard';
 import Sidebar from '../Components/Admin/AdminSidebar';
 import UserManagement from '../Pages/Admin/UserManagement/UserManagement';
 import { useSelector } from 'react-redux';
@@ -67,7 +68,7 @@ const AdminWrapper = () => {
       
 
       {/* Use the Sidebar for routes that need it */}
-      <Route path="/dashboard" element={<AdminPrivateRoute><Sidebar><Dashboard /></Sidebar></AdminPrivateRoute>}/>
+      <Route path="/dashboard" element={<AdminPrivateRoute><Sidebar><Dashboard/></Sidebar></AdminPrivateRoute>}/>
       <Route path="/user-management" element={<AdminPrivateRoute><Sidebar><UserManagement /></Sidebar></AdminPrivateRoute>}/>
 
       {/* Add more routes here that require Sidebar */}

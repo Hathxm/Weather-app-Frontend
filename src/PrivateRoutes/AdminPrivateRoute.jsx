@@ -11,7 +11,7 @@ const AdminPrivateRoute = ({children}) => {
     
         if (!user_basic_details?.is_authenticated && !user_basic_details?.is_superuser
         ) {
-            return <Navigate to="/login" replace />;
+            return <Navigate to="/" replace />;
         }
 
     

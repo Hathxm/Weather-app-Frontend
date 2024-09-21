@@ -1,13 +1,13 @@
-// Login.js
 import React, { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 import axios from "../../../axiosinstance/axiosinstance";
 import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { useDispatch } from "react-redux";
 import { set_user_basic_details } from "../../../Redux/UserDetails/UserDetailsSlice";
-import { useDispatch } from 'react-redux';
-
+import { toast } from "react-toastify";
+import { Cloud, Zap, Sun, Wind } from "lucide-react"; // Adding Sun and Wind icons
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -16,7 +16,6 @@ export default function Login() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
 
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
@@ -49,8 +48,6 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Prevent submission if there are errors
     if (errors.username || errors.password) return;
 
     const loginData = {
@@ -59,14 +56,12 @@ export default function Login() {
     };
 
     try {
-      // Send login data to the API
       const response = await axios.post("login", loginData);
 
-      // Handle successful login
       if (response.status === 200) {
         const { access, refresh, is_superuser, username, email, id, is_authenticated } = response.data;
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
+        localStorage.setItem("access_token", access);
+        localStorage.setItem("refresh_token", refresh);
 
         const userData = {
           id: id,
@@ -75,80 +70,93 @@ export default function Login() {
           email: email,
           is_authenticated: is_authenticated,
         };
-        
-        console.log('User Data:', userData); // Log the data being dispatched to Redux
 
-        // Dispatch the user details to Redux
+        toast.success("User Has Logged In");
         dispatch(set_user_basic_details(userData));
 
-        // Redirect based on user role
         if (is_superuser) {
-          navigate('/admin/dashboard');  // Navigate to Admin Dashboard
+          navigate("/admin/dashboard");
         } else {
-          navigate('/user-dashboard');  // Navigate to User Dashboard
+          navigate("/user-dashboard");
         }
       }
     } catch (error) {
-      console.error('Error during login:', error.response || error.message);
       setErrors((prevErrors) => ({
         ...prevErrors,
         login: "Invalid username or password",
       }));
     }
   };
-
-
   const handleGoogleSuccess = async (credentialResponse) => {
     const token = credentialResponse.credential;
-    console.log(token);
     try {
       const response = await axios.post("google-login", { token });
-      console.log("Received response:", response);
-
-      // If user exists, log them in and navigate to the homepage
+  
       if (response.status === 200) {
         const { access, refresh, is_superuser, id, username, email, is_authenticated } = response.data;
-
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
-
+        
+        // Store tokens and user details
+        localStorage.setItem("access_token", access);
+        localStorage.setItem("refresh_token", refresh);
+  
         const userData = {
           id: id,
           name: username,
           is_superuser: is_superuser,
           email: email,
-          is_authenticated:is_authenticated,
+          is_authenticated: is_authenticated,
         };
-
-        console.log('User Data:', userData); // Log the data being dispatched to Redux
-
-        // Dispatch the user details to Redux
+  
+        // Dispatch user details to the store
         dispatch(set_user_basic_details(userData));
-
+  
+        // Show success toast
+        toast.success("User has successfully logged in");
+  
+        // Navigate based on user role
         if (is_superuser) {
-          navigate('/admin/dashboard');  // Navigate to Admin Dashboard
+          navigate("/admin/dashboard");
         } else {
-          navigate('/user-dashboard');  // Navigate to User Dashboard
+          navigate("/user-dashboard");
         }
-        
       } else {
-        // If user is new, proceed with OTP verification
+        // If status is not 200, show error toast (fallback case)
+        toast.error("An unexpected error occurred during login.");
       }
     } catch (error) {
-      console.error('Error during Google signup:', error.response || error.message);
+      // Log error details for debugging
+      console.error("Error during Google login:", error);
+  
+      // Check if the error is a 400 response (e.g., email already in use or other issues)
+      if (error.response && error.response.status === 400) {
+        const errorMessage = error.response.data?.error || "Invalid login attempt.";
+        toast.error(errorMessage);
+      } else {
+        // Handle other errors (500 or network-related errors)
+        toast.error("An error occurred while logging in. Please try again.");
+      }
     }
   };
+  
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
-      <div className="mx-4 w-full max-w-md bg-white shadow-md rounded-lg">
-        <div className="p-6 text-center space-y-2">
-          <h2 className="text-3xl font-bold">Welcome to WeatherApp</h2>
-          <p className="text-gray-500">
-            Sign in to access the latest weather forecasts and insights.
-          </p>
+    <div className="relative flex flex-col min-h-screen items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
+      {/* Cloud, Sun, and Wind Icons */}
+      <div className="absolute -top-16 flex flex-col items-center justify-center">
+        <Cloud className="text-gray-300 w-48 h-32" />
+        <Zap className="text-yellow-400 w-10 h-10 animate-pulse" />
+      </div>
+
+      <Sun className="absolute left-24 top-48 w-32 h-32 text-yellow-400 animate-pulse" />
+      <Wind className="absolute right-24 top-48 w-32 h-32 text-yellow-400 animate-pulse" />
+
+      {/* Login Form */}
+      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6 mt-16 mx-4">
+        <div className="text-center mb-4">
+          <h2 className="text-2xl font-bold">Welcome to WeatherApp</h2>
+          <p className="text-gray-500">Sign in to access the latest weather forecasts and insights.</p>
         </div>
-        <form className="p-6 space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label htmlFor="username" className="block text-sm font-medium text-gray-700">
               Username
@@ -161,9 +169,7 @@ export default function Login() {
               placeholder="Enter your username"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
             />
-            {errors.username && (
-              <p className="text-sm text-red-500">{errors.username}</p>
-            )}
+            {errors.username && <p className="text-sm text-red-500">{errors.username}</p>}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -183,15 +189,10 @@ export default function Login() {
                 className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
                 onClick={togglePasswordVisibility}
               >
-                <FontAwesomeIcon
-                  icon={passwordVisible ? faEyeSlash : faEye}
-                  className="text-gray-500"
-                />
+                <FontAwesomeIcon icon={passwordVisible ? faEyeSlash : faEye} className="text-gray-500" />
               </div>
             </div>
-            {errors.password && (
-              <p className="text-sm text-red-500">{errors.password}</p>
-            )}
+            {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
           </div>
           <button
             type="submit"
@@ -201,9 +202,10 @@ export default function Login() {
             Sign In
           </button>
         </form>
-        {/* Google login section */}
-        <div className="px-6 py-4 flex justify-center">
-          <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
+
+        {/* Google Login */}
+        <div className="mt-4 flex justify-center">
+        <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => console.log('Google login failed')}
@@ -211,9 +213,10 @@ export default function Login() {
             />
           </GoogleOAuthProvider>
         </div>
-        <div className="p-6 text-center text-sm text-gray-500">
+
+        <div className="mt-4 text-center text-sm text-gray-500">
           Don't have an account?{" "}
-          <a href="signup" className="text-blue-500 hover:underline">
+          <a href="/signup" className="text-blue-500 hover:underline">
             Sign up
           </a>
         </div>
