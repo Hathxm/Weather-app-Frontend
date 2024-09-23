@@ -18,27 +18,27 @@ const UserManagement = () => {
     fetchUsers();
   }, []);
 
-
-  const toggleUserStatus = async (userId) => {
+  const toggleUserStatus = async (userId, currentStatus) => {
     try {
       // Send PATCH request with the userId in the request body
       const response = await axios.patch(`/superadmin/user-management`, {
         userId: userId,
+        is_active: !currentStatus, // Toggling the active status
       });
-  
+
       if (response.status === 200) {
         // Update the user status in the frontend based on the response
         const updatedUsers = users.map(user =>
-          user.id === userId ? { ...user, isBlocked: !user.isBlocked } : user
+          user.id === userId ? { ...user, is_active: !user.is_active } : user
         );
         setUsers(updatedUsers);
-  
+
         // Show appropriate toast notification based on the new user status
         const updatedUser = updatedUsers.find(user => user.id === userId);
-        if (updatedUser.isBlocked) {
-          toast.error("User has been blocked successfully");
-        } else {
+        if (updatedUser.is_active) {
           toast.success("User has been unblocked successfully");
+        } else {
+          toast.error("User has been blocked successfully");
         }
       } else {
         console.error("Failed to update user status.");
@@ -67,17 +67,22 @@ const UserManagement = () => {
               <td className="py-2 px-4 text-center align-middle">{user.email}</td>
               <td className="py-2 px-4 text-center align-middle">
                 <button
-                  onClick={() => toggleUserStatus(user.id, user.isBlocked)}
+                  onClick={() => toggleUserStatus(user.id, user.is_active)}
                   className={`p-2 rounded ${
-                    user.isBlocked ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
+                    user.is_active ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
                   }`}
                 >
-                  {user.isBlocked ? (
-                    <LockIcon className="h-5 w-5 inline" />
+                  {user.is_active ? (
+                    <>
+                      <LockOpenIcon className="h-5 w-5 inline" />
+                      {' Active'}
+                    </>
                   ) : (
-                    <LockOpenIcon className="h-5 w-5 inline" />
+                    <>
+                      <LockIcon className="h-5 w-5 inline" />
+                      {' Blocked'}
+                    </>
                   )}
-                  {user.isBlocked ? ' Blocked' : ' Active'}
                 </button>
               </td>
             </tr>

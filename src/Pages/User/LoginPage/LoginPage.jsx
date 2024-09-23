@@ -111,21 +111,20 @@ export default function Login() {
         dispatch(set_user_basic_details(userData));
   
         // Show success toast
-        toast.success("User has successfully logged in");
+        
   
         // Navigate based on user role
         if (is_superuser) {
           navigate("/admin/dashboard");
+          toast.success("User has successfully logged in");
         } else {
           navigate("/user-dashboard");
+          toast.success("User has successfully logged in");
         }
-      } else {
-        // If status is not 200, show error toast (fallback case)
-        toast.error("An unexpected error occurred during login.");
       }
     } catch (error) {
       // Log error details for debugging
-      console.error("Error during Google login:", error);
+      toast.error(error);
   
       // Check if the error is a 400 response (e.g., email already in use or other issues)
       if (error.response && error.response.status === 400) {

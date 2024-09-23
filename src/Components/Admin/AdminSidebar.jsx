@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faBars, faArrowLeft, faTachometerAlt, faUsers, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { useDispatch } from 'react-redux';
 import { set_user_basic_details } from '../../Redux/UserDetails/UserDetailsSlice';
 
@@ -16,12 +16,12 @@ const Sidebar = ({ children }) => {
         set_user_basic_details({
             id : null,
             name: null,
-            email:null,
-            is_superuser:false,
-            is_authenticated:false,
+            email: null,
+            is_superuser: false,
+            is_authenticated: false,
         })
-    ) // Clear the local storage (logout)
-    navigate("/");    // Redirect to the login page
+    ); 
+    navigate("/"); // Redirect to the login page
   };
 
   const toggleSidebar = () => {
@@ -29,7 +29,7 @@ const Sidebar = ({ children }) => {
   };
 
   const navLinkClasses = ({ isActive }) =>
-    isActive ? "block p-4 bg-gray-700 text-white" : "block p-4 hover:bg-gray-700 text-gray-300";
+    isActive ? "block p-4 bg-gray-700 text-white flex items-center" : "block p-4 hover:bg-gray-700 text-gray-300 flex items-center";
 
   return (
     <div className="flex h-screen">
@@ -57,17 +57,20 @@ const Sidebar = ({ children }) => {
           <ul>
             <li>
               <NavLink to="/admin/dashboard" className={navLinkClasses}>
-                Dashboard
+                <FontAwesomeIcon icon={faTachometerAlt} className="mr-3" />
+                <span className={`${isSidebarOpen ? 'inline' : 'hidden'}`}>Dashboard</span>
               </NavLink>
             </li>
             <li>
               <NavLink to="/admin/user-management" className={navLinkClasses}>
-                Users
+                <FontAwesomeIcon icon={faUsers} className="mr-3" />
+                <span className={`${isSidebarOpen ? 'inline' : 'hidden'}`}>Users</span>
               </NavLink>
             </li>
             <li>
-              <button onClick={handleLogout} className="block w-full text-left p-4 hover:bg-gray-700 text-gray-300">
-                Logout
+              <button onClick={handleLogout} className="block w-full text-left p-4 hover:bg-gray-700 text-gray-300 flex items-center">
+                <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
+                <span className={`${isSidebarOpen ? 'inline' : 'hidden'}`}>Logout</span>
               </button>
             </li>
           </ul>
