@@ -87,18 +87,19 @@ export default function Login() {
       }));
     }
   };
+
   const handleGoogleSuccess = async (credentialResponse) => {
     const token = credentialResponse.credential;
     try {
       const response = await axios.post("google-login", { token });
-  
+
       if (response.status === 200) {
         const { access, refresh, is_superuser, id, username, email, is_authenticated } = response.data;
-        
+
         // Store tokens and user details
         localStorage.setItem("access_token", access);
         localStorage.setItem("refresh_token", refresh);
-  
+
         const userData = {
           id: id,
           name: username,
@@ -106,13 +107,10 @@ export default function Login() {
           email: email,
           is_authenticated: is_authenticated,
         };
-  
+
         // Dispatch user details to the store
         dispatch(set_user_basic_details(userData));
-  
-        // Show success toast
-        
-  
+
         // Navigate based on user role
         if (is_superuser) {
           navigate("/admin/dashboard");
@@ -125,7 +123,7 @@ export default function Login() {
     } catch (error) {
       // Log error details for debugging
       toast.error(error);
-  
+
       // Check if the error is a 400 response (e.g., email already in use or other issues)
       if (error.response && error.response.status === 400) {
         const errorMessage = error.response.data?.error || "Invalid login attempt.";
@@ -136,7 +134,6 @@ export default function Login() {
       }
     }
   };
-  
 
   return (
     <div className="relative flex flex-col min-h-screen items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700">
@@ -146,8 +143,9 @@ export default function Login() {
         <Zap className="text-yellow-400 w-10 h-10 animate-pulse" />
       </div>
 
-      <Sun className="absolute left-24 top-48 w-32 h-32 text-yellow-400 animate-pulse" />
-      <Wind className="absolute right-24 top-48 w-32 h-32 text-yellow-400 animate-pulse" />
+      {/* Sun and Wind icons will only show on screens wider than `md` */}
+      <Sun className="hidden md:block absolute left-24 top-48 w-28 h-28 text-yellow-400 animate-pulse" />
+      <Wind className="hidden md:block absolute right-24 top-48 w-28 h-28 text-yellow-400 animate-pulse" />
 
       {/* Login Form */}
       <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6 mt-16 mx-4">
@@ -204,7 +202,7 @@ export default function Login() {
 
         {/* Google Login */}
         <div className="mt-4 flex justify-center">
-        <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
+          <GoogleOAuthProvider clientId="your-google-client-id">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => console.log('Google login failed')}
