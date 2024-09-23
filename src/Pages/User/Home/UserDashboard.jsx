@@ -1,31 +1,47 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { LineChart, BarChart, PieChart, Line, Bar, XAxis, YAxis, Tooltip, Legend, Pie, Cell, ResponsiveContainer, CartesianGrid } from "recharts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import { faSignOutAlt, faTemperatureHigh, faTint, faWind } from "@fortawesome/free-solid-svg-icons"; // Import icons
 import { useSelector, useDispatch } from "react-redux";
 import { set_user_basic_details } from "../../../Redux/UserDetails/UserDetailsSlice";
-import { CloudRain, Droplets, Sun, Wind } from "lucide-react";
+import dayjs from 'dayjs'; // For date formatting
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const [chartType, setChartType] = useState("line");
   const [weatherData, setWeatherData] = useState([]);
   const [todayWeather, setTodayWeather] = useState({});
-  const navigate = useNavigate();
+  const [hourlyForecast, setHourlyForecast] = useState([]); // For the second table
+  const [locationDetails, setLocationDetails] = useState({ country: "Unknown", city: "Unknown" });
   const dispatch = useDispatch();
-  const userdetails = useSelector(state => state.user_basic_details);
+  const navigate = useNavigate();
+
+
+  const handleLogout = () => {
+    localStorage.clear(); 
+    dispatch(
+        set_user_basic_details({
+            id : null,
+            name: null,
+            email: null,
+            is_superuser: false,
+            is_authenticated: false,
+        })
+    ); 
+    navigate("/"); // Redirect to the login page
+  };
 
   const API_KEY = "7ee0d9af2d1b4f4e90625730240609";
-  const location = "India";
+
 
   useEffect(() => {
-    const fetchWeatherData = async () => {
+    const fetchWeatherData = async (latitude, longitude) => {
       try {
-        const response = await axios.get(`https://api.weatherapi.com/v1/forecast.json`, {
+        const response = await axios.get("https://api.weatherapi.com/v1/forecast.json", {
           params: {
             key: API_KEY,
-            q: location,
+            q: `${latitude},${longitude}`, // Pass latitude and longitude to get weather data based on user's location
             days: 14,
             aqi: "no",
           },
@@ -33,10 +49,12 @@ export default function Dashboard() {
 
         const forecast = response.data.forecast.forecastday;
         const formattedData = forecast.map((day) => ({
-          day: day.date,
-          temp: day.day.avgtemp_c,
-          humidity: day.day.avghumidity,
-          precipitation: day.day.totalprecip_mm,
+          date: dayjs(day.date).format('dddd, DD MMMM'), // Format date as Friday, 28 ...
+          avgTemp: day.day.avgtemp_c,
+          avgHumidity: day.day.avghumidity,
+          maxWindSpeed: day.day.maxwind_kph,
+          condition: day.day.condition.text,
+          icon: day.day.condition.icon, // Weather condition icon
         }));
 
         setWeatherData(formattedData);
@@ -47,172 +65,175 @@ export default function Dashboard() {
           windSpeed: forecast[0].day.maxwind_kph,
           uvIndex: forecast[0].day.uv,
           precipitation: forecast[0].day.totalprecip_mm,
+          icon: forecast[0].day.condition.icon, // Icon for today's weather
+          date: dayjs().format('dddd, DD MMMM'), // Today's date
+        });
+
+        // Extract hourly forecast data for the second table
+        const hourlyData = response.data.forecast.forecastday[0].hour.filter(hour => {
+          const hourTime = dayjs(hour.time).format('H');
+          return [11, 13, 15, 17, 19].includes(parseInt(hourTime)); // Selecting specific times
+        }).map(hour => ({
+          time: dayjs(hour.time).format('h:mm A'), // Format the time as 11:00 AM
+          temp: hour.temp_c,
+        }));
+
+        setHourlyForecast(hourlyData);
+        setLocationDetails({
+          country: response.data.location.country,
+          city: response.data.location.name,
         });
       } catch (error) {
         console.error("Error fetching weather data:", error);
       }
     };
 
-    fetchWeatherData();
-    console.log("userdetails", userdetails);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        fetchWeatherData(latitude, longitude);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+      }
+    );
   }, []);
 
   const COLORS = ["#8884d8", "#82ca9d", "#ffc658"];
-
-  const handleLogout = () => {
-    localStorage.clear();
-    dispatch(
-      set_user_basic_details({
-        id: null,
-        name: null,
-        email: null,
-        is_superuser: false,
-        is_authenticated: false,
-      })
-    );
-
-    navigate("/");
-  };
-
+  const ICONS = [faTemperatureHigh, faTint, faWind]; // Icons for temperature, humidity, wind
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex flex-col overflow-x-hidden">
       {/* Header */}
       <header className="bg-black text-white py-4 px-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold ml-10">Weather Dashboard</h1>
-
-        <div className="flex items-center space-x-4">
-          <div className="relative inline-block">
-          
-          </div>
-
+        <h1 className="text-2xl md:text-3xl font-bold ml-2 md:ml-10">Weather Dashboard</h1>
+        <div className="flex items-center space-x-2">
           <button
-            onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
             aria-label="Logout"
+            onClick={handleLogout}
           >
             <FontAwesomeIcon icon={faSignOutAlt} />
           </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="container mx-auto p-4">
-  <h1 className="text-4xl font-bold mb-8 text-center">Weather Forecast</h1>
+      <div className="flex flex-col items-center justify-center w-full text-gray-700 p-4 md:p-10 bg-gradient-to-br from-pink-200 via-purple-200 to-indigo-200">
+        {/* First Table with Today's Weather */}
+        <div className="w-full max-w-sm bg-white p-6 rounded-xl ring-8 ring-white ring-opacity-40 mb-4 md:mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="flex flex-col text-center md:text-left">
+              <span className="text-5xl md:text-6xl font-bold">{todayWeather.temperature}°C</span>
+              <span className="font-semibold mt-1 text-gray-500">
+                {locationDetails.city}, {locationDetails.country}
+              </span>
+              <span className="font-semibold mt-1 text-gray-500">{todayWeather.condition}</span>
+              <span className="font-semibold mt-1 text-gray-500">{todayWeather.date}</span> {/* Today's Date */}
+            </div>
+            <img src={todayWeather.icon} alt="Weather Icon" className="h-20 w-20 md:h-24 md:w-24" />
+          </div>
+        </div>
 
- 
-    <div className="col-span-2 bg-white shadow-md rounded-lg p-4">
-      <h2 className="text-xl font-semibold">Today's Weather</h2>
-      <p className="text-gray-500">Current conditions and details</p>
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-6xl font-bold">{todayWeather.temperature}°C</div>
-        <div className="text-2xl">{todayWeather.condition}</div>
-        <Sun className="w-16 h-16 text-yellow-400" />
-      </div>
-    </div>
+        {/* Second Table with Hourly Forecast (Dynamic Data from API) */}
+        <div className="w-full max-w-sm bg-white p-4 rounded-xl ring-8 ring-white ring-opacity-40 mb-4 md:mb-8">
+          <div className="flex flex-col md:flex-row justify-between">
+            {hourlyForecast.map((data, index) => (
+              <div key={index} className="flex flex-col items-center mb-2 md:mb-0">
+                <span className="font-semibold text-lg">{data.temp}°C</span>
+                <span className="font-semibold mt-1 text-sm">{data.time}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-    {/* Weather Info Cards */}
-
-<div className="grid grid-cols-2 gap-4 lg:grid-cols-[1fr_1fr] mt-5">
-  <div className="bg-white shadow-md rounded-lg p-4 flex flex-col items-center">
-    <h3 className="text-sm font-medium">Humidity</h3>
-    <Droplets className="h-6 w-6 text-muted-foreground" />
-    <div className="text-2xl font-bold">{todayWeather.humidity}%</div>
-  </div>
-  <div className="bg-white shadow-md rounded-lg p-4 flex flex-col items-center">
-    <h3 className="text-sm font-medium">Wind Speed</h3>
-    <Wind className="h-6 w-6 text-muted-foreground" />
-    <div className="text-2xl font-bold">{todayWeather.windSpeed} km/h</div>
-  </div>
-  <div className="bg-white shadow-md rounded-lg p-4 flex flex-col items-center">
-    <h3 className="text-sm font-medium">UV Index</h3>
-    <Sun className="h-6 w-6 text-muted-foreground" />
-    <div className="text-2xl font-bold">{todayWeather.uvIndex}</div>
-  </div>
-  <div className="bg-white shadow-md rounded-lg p-4 flex flex-col items-center">
-    <h3 className="text-sm font-medium">Precipitation</h3>
-    <CloudRain className="h-6 w-6 text-muted-foreground" />
-    <div className="text-2xl font-bold">{todayWeather.precipitation} mm</div>
-  </div>
-</div>
-
-
-  {/* Chart Section */}
-  <main className="p-8 bg-white shadow-lg rounded-lg mt-8 mx-auto" style={{ width: '100%', height: 'auto' }}>
-  <div className="flex justify-between items-center">
-    <h2 className="text-xl font-semibold mb-6 text-gray-700">
-      {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
-    </h2>
-
-    <select
-      className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer focus:outline-none ml-auto"
-      value={chartType}
-      onChange={(e) => setChartType(e.target.value)}
-    >
-      <option value="line">Line Chart</option>
-      <option value="bar">Bar Chart</option>
-      <option value="pie">Pie Chart</option>
-    </select>
-  </div>
-
-  {/* Chart Implementation */}
-  {chartType === "line" && (
-    <ResponsiveContainer width="100%" height={400}>
-      <LineChart data={weatherData}>
-        <XAxis dataKey="day" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Line type="monotone" dataKey="temp" stroke="#8884d8" name="Temperature (°C)" />
-        <Line type="monotone" dataKey="humidity" stroke="#82ca9d" name="Humidity (%)" />
-        <Line type="monotone" dataKey="precipitation" stroke="#ffc658" name="Precipitation (mm)" />
-      </LineChart>
-    </ResponsiveContainer>
-  )}
-
-  {/* Other Charts */}
-  {chartType === "bar" && (
-    <ResponsiveContainer width="100%" height={400}>
-      <BarChart data={weatherData}>
-        <XAxis dataKey="day" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="temp" fill="#8884d8" name="Temperature (°C)" />
-        <Bar dataKey="humidity" fill="#82ca9d" name="Humidity (%)" />
-        <Bar dataKey="precipitation" fill="#ffc658" name="Precipitation (mm)" />
-      </BarChart>
-    </ResponsiveContainer>
-  )}
-
-  {chartType === "pie" && (
-    <ResponsiveContainer width="100%" height={400}>
-      <PieChart>
-        <Pie
-          data={[
-            { name: "Average Temperature (°C)", value: weatherData.reduce((sum, data) => sum + data.temp, 0) / weatherData.length || 0 },
-            { name: "Average Humidity (%)", value: weatherData.reduce((sum, data) => sum + data.humidity, 0) / weatherData.length || 0 },
-            { name: "Total Precipitation (mm)", value: weatherData.reduce((sum, data) => sum + data.precipitation, 0) || 0 },
-          ]}
-          cx="50%"
-          cy="50%"
-          outerRadius={120}
-          fill="#8884d8"
-          label
-        >
-          {COLORS.map((color, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index]} />
+        {/* Third Table with Weather Forecast Data and Icons */}
+        <div className="flex flex-col space-y-2 w-full max-w-sm bg-white p-4 rounded-xl ring-8 ring-white ring-opacity-40 mb-4 md:mb-8">
+          {weatherData.map((data, index) => (
+            <div key={index} className="flex justify-between items-center p-2 border-b border-gray-200">
+              <span className="font-semibold w-1/4">{data.date}</span>
+              <FontAwesomeIcon icon={faTemperatureHigh} className="w-1/4" />
+              <span className="w-1/4 font-semibold">{data.avgTemp}°C</span>
+              <FontAwesomeIcon icon={faTint} className="w-1/4" />
+              <span className="w-1/4 font-semibold">{data.avgHumidity}%</span>
+              <FontAwesomeIcon icon={faWind} className="w-1/4" />
+              <span className="w-1/4 font-semibold">{data.maxWindSpeed} km/h</span>
+            </div>
           ))}
-        </Pie>
-        <Tooltip />
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  )}
-</main>
+        </div>
 
-</div>
+        {/* Chart Section */}
+        <div className="w-full max-w-sm bg-white p-4 rounded-xl ring-8 ring-white ring-opacity-40 mt-4 md:mt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-2 md:mb-4">
+            <h2 className="text-xl md:text-2xl font-bold">Weather Forecast Chart</h2>
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setChartType("line")}
+                className={`p-2 rounded ${chartType === "line" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                Line
+              </button>
+              <button
+                onClick={() => setChartType("bar")}
+                className={`p-2 rounded ${chartType === "bar" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                Bar
+              </button>
+              <button
+                onClick={() => setChartType("pie")}
+                className={`p-2 rounded ${chartType === "pie" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                Pie
+              </button>
+            </div>
+          </div>
 
+          <ResponsiveContainer width="100%" height={300}>
+            {chartType === "line" && (
+              <LineChart data={weatherData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="avgTemp" stroke="#8884d8" />
+                <Line type="monotone" dataKey="avgHumidity" stroke="#82ca9d" />
+                <Line type="monotone" dataKey="maxWindSpeed" stroke="#ffc658" />
+              </LineChart>
+            )}
+            {chartType === "bar" && (
+              <BarChart data={weatherData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="avgTemp" fill="#8884d8" />
+                <Bar dataKey="avgHumidity" fill="#82ca9d" />
+                <Bar dataKey="maxWindSpeed" fill="#ffc658" />
+              </BarChart>
+            )}
+            {chartType === "pie" && (
+              <PieChart>
+                <Pie data={weatherData} dataKey="avgTemp" cx="50%" cy="50%" outerRadius={80} label>
+                  {weatherData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend
+                  formatter={(value, entry, index) => (
+                    <span>
+                      {value} - {["Temperature", "Humidity", "Wind Speed"][index % 3]} (
+                      <span style={{ color: COLORS[index % COLORS.length] }}>
+                        {COLORS[index % COLORS.length]}
+                      </span>)
+                    </span>
+                  )}
+                />
+              </PieChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      </div>
     </div>
   );
 }
-
