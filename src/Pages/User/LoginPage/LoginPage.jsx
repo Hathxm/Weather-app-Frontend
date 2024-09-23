@@ -202,7 +202,7 @@ export default function Login() {
 
         {/* Google Login */}
         <div className="mt-4 flex justify-center">
-          <GoogleOAuthProvider clientId="your-google-client-id">
+          <GoogleOAuthProvider clientId="1085163789320-espoks416amh5iin041qm249ngtbe6bk.apps.googleusercontent.com">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
               onError={() => console.log('Google login failed')}
