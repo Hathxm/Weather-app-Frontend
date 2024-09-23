@@ -22,7 +22,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchWeatherData = async () => {
       try {
-        const response = await axios.get(`http://api.weatherapi.com/v1/forecast.json`, {
+        const response = await axios.get(`https://api.weatherapi.com/v1/forecast.json`, {
           params: {
             key: API_KEY,
             q: location,
