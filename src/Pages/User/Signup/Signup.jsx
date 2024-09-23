@@ -53,7 +53,7 @@ const FormComponentRight = () => {
       if (response.status === 201) {
         toast.success('Account created successfully!', { autoClose: 3000 });
         setTimeout(() => {
-          navigate('/login');
+          navigate('/');
         }, 3000);  // Redirect to login page after 3 seconds
       }
     } catch (error) {
